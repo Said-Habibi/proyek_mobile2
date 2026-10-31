@@ -1,16 +1,16 @@
 /// Tab Home
-const homeVideoIds = <String>['dQw4w9WgXcQ', 'dQw4w9WgXcQ', 'dQw4w9WgXcQ'];
+const homeVideoIds = <String>['32nR048EMI0', '_c2e1NcI3Sc', 'tBTprs6p5fM'];
 
 /// Tab Music
-const musicVideoIds = <String>['dQw4w9WgXcQ', 'dQw4w9WgXcQ'];
+const musicVideoIds = <String>['IfywPnUKsXg', 'T7BeOPQ7oyw', 'lGeUFHtlzDE'];
 
 /// Tab Subs
-const subsVideoIds = <String>['dQw4w9WgXcQ', 'dQw4w9WgXcQ'];
+const subsVideoIds = <String>['TKtcdHUrSmg', 'T7w74bbFo5E'];
 
 /// Rak Shorts (tampil di Home dan tab Shorts)
 const shortsVideoIds = <String>[
-  'dQw4w9WgXcQ',
-  'dQw4w9WgXcQ',
-  'dQw4w9WgXcQ',
-  'dQw4w9WgXcQ',
+  'HBBkAIcuh2Y',
+  'Sqpbh-etDY4',
+  'De3HWvF7648',
+  '_lOAg7vUTyw',
 ];

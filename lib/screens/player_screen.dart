@@ -89,11 +89,10 @@ class _VideoDetails extends StatelessWidget {
           style: TextStyle(color: Colors.grey.shade700),
         ),
         const SizedBox(height: 12),
-        const _ActionButtons(),
-        const Divider(height: 28),
-        _ChannelRow(video: video),
-        const Divider(height: 28),
-        // Video lain (selain yang sedang diputar).
+        const _ChannelActionRow(),
+        const SizedBox(height: 12),
+        const _CommentPreview(),
+        const SizedBox(height: 12),
         for (final other in homeVideos)
           if (other != video) VideoCard(video: other),
       ],
@@ -101,70 +100,173 @@ class _VideoDetails extends StatelessWidget {
   }
 }
 
-class _ActionButtons extends StatelessWidget {
-  const _ActionButtons();
+// Ganti URL ini dengan link gambar kamu.
+// const String kChannelAvatarUrl =
+//     'https://i.pinimg.com/736x/1b/d6/f4/1bd6f46b92b38097840441fbc08ae824.jpg';
+// const String kSubscribeButtonUrl = 'https://example.com/subscribe.png';
 
-  @override
-  Widget build(BuildContext context) {
-    return const SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          _ActionButton(icon: Icons.thumb_up_alt_outlined, label: 'Suka'),
-          _ActionButton(icon: Icons.comment_outlined, label: 'Komentar'),
-          _ActionButton(icon: Icons.share_outlined, label: 'Bagikan'),
-          _ActionButton(icon: Icons.playlist_add, label: 'Simpan'),
-        ],
-      ),
-    );
-  }
-}
+class _ChannelActionRow extends StatelessWidget {
+  const _ChannelActionRow({
+    this.avatarUrl = 'https://i.pinimg.com/736x/1b/d6/f4/1bd6f46b92b38097840441fbc08ae824.jpg',
+  });
 
-class _ActionButton extends StatelessWidget {
-  const _ActionButton({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: OutlinedButton.icon(
-        onPressed: () {},
-        icon: Icon(icon, size: 18),
-        label: Text(label),
-      ),
-    );
-  }
-}
-
-class _ChannelRow extends StatelessWidget {
-  const _ChannelRow({required this.video});
-
-  final Video video;
+  final String avatarUrl;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        CircleAvatar(child: Text(video.channel[0])),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            video.channel,
-            style: const TextStyle(fontWeight: FontWeight.bold),
+        ClipOval(
+          child: Image.network(
+            avatarUrl,
+            width: 36,
+            height: 36,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => Container(
+              width: 36,
+              height: 36,
+              color: const Color(0xFFFFDAD6),
+            ),
           ),
         ),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.black,
-            foregroundColor: Colors.white,
+        const SizedBox(width: 10),
+        Container(
+          height: 36,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Colors.black,
+            borderRadius: BorderRadius.circular(18),
           ),
-          onPressed: () {},
-          child: const Text('Subscribe'),
+          child: const Text(
+            'Subscribe',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        const SizedBox(width: 8),
+        const Expanded(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              _IconAction(icon: Icons.thumb_up_outlined),
+              _IconAction(icon: Icons.thumb_down_outlined),
+              _IconAction(icon: Icons.share_outlined),
+              _IconAction(icon: Icons.auto_awesome_outlined),
+              _IconAction(icon: Icons.more_vert),
+            ],
+          ),
         ),
       ],
+    );
+  }
+}
+
+class _IconAction extends StatelessWidget {
+  const _IconAction({required this.icon});
+
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8),
+      child: Icon(icon, size: 24, color: Colors.black87),
+    );
+  }
+}
+
+// class _SubscribeButton extends StatelessWidget {
+//   const _SubscribeButton({required this.url});
+
+//   final String url;
+
+//   @override
+//   Widget build(BuildContext context) {
+//     return Image.network(
+//       url,
+//       height: 36,
+//       fit: BoxFit.contain,
+//       loadingBuilder: (context, child, progress) =>
+//           progress == null ? child : _fallback(),
+//       errorBuilder: (context, error, stackTrace) => _fallback(),
+//     );
+//   }
+
+//   Widget _fallback() {
+//     return Container(
+//       height: 36,
+//       padding: const EdgeInsets.symmetric(horizontal: 16),
+//       alignment: Alignment.center,
+//       decoration: BoxDecoration(
+//         color: Colors.black,
+//         borderRadius: BorderRadius.circular(18),
+//       ),
+//       child: const Text(
+//         'Subscribe',
+//         style: TextStyle(
+//           color: Colors.white,
+//           fontSize: 14,
+//           fontWeight: FontWeight.w500,
+//         ),
+//       ),
+//     );
+//   }
+// }
+
+class _CommentPreview extends StatelessWidget {
+  const _CommentPreview();
+
+  @override
+  Widget build(BuildContext context) {
+    // Tidak memakai InkWell/GestureDetector, jadi kartu ini tidak bisa dibuka.
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF2F2F2),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: const [
+              Text(
+                'Comments',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+              ),
+              SizedBox(width: 6),
+              Text('3k', style: TextStyle(fontSize: 13, color: Colors.black54)),
+            ],
+          ),
+          const SizedBox(height: 10),
+          const Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              CircleAvatar(
+                radius: 14,
+                backgroundColor: Color(0xFFD9D9D9),
+                foregroundImage: NetworkImage(
+                  'https://i.pinimg.com/736x/9a/c2/1a/9ac21a91b1c943bdd6af511c3f9dafc6.jpg',
+                ),
+              ),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Video yang bagus sekarang mana lapangan pekerjaannya.',
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(fontSize: 14),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
