@@ -4,9 +4,11 @@ import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import '../data/dummy_data.dart';
 import '../models/video.dart';
 
-/// Pemutar Shorts vertikal. Setiap ID di shortsVideoIds menjadi satu halaman.
+/// Halaman Shorts: video yang digeser ke atas/bawah.
+/// [initialIndex] menentukan Short mana yang tampil pertama kali.
 class ShortsScreen extends StatefulWidget {
   const ShortsScreen({super.key, this.initialIndex = 0});
+
   final int initialIndex;
 
   @override
@@ -15,12 +17,10 @@ class ShortsScreen extends StatefulWidget {
 
 class _ShortsScreenState extends State<ShortsScreen> {
   late final PageController _pageController;
-  late int _current;
 
   @override
   void initState() {
     super.initState();
-    _current = widget.initialIndex;
     _pageController = PageController(initialPage: widget.initialIndex);
   }
 
@@ -38,60 +38,37 @@ class _ShortsScreenState extends State<ShortsScreen> {
         scrollDirection: Axis.vertical,
         controller: _pageController,
         itemCount: shortsVideos.length,
-        onPageChanged: (i) => setState(() => _current = i),
-        itemBuilder: (context, i) => _ShortPlayerPage(
-          key: ValueKey(i),
-          video: shortsVideos[i],
-          isActive: i == _current,
-        ),
+        itemBuilder: (context, index) {
+          return _ShortPlayer(video: shortsVideos[index]);
+        },
       ),
     );
   }
 }
 
-class _ShortPlayerPage extends StatefulWidget {
-  const _ShortPlayerPage({
-    super.key,
-    required this.video,
-    required this.isActive,
-  });
+/// Satu halaman Short: pemutar video, tap untuk play/pause, dan judul.
+/// PageView hanya membuat halaman yang sedang terlihat dan membuangnya setelah
+/// tergeser keluar, jadi controller dibuat di initState dan dibuang di dispose.
+class _ShortPlayer extends StatefulWidget {
+  const _ShortPlayer({required this.video});
 
   final Video video;
-  final bool isActive;
 
   @override
-  State<_ShortPlayerPage> createState() => _ShortPlayerPageState();
+  State<_ShortPlayer> createState() => _ShortPlayerState();
 }
 
-class _ShortPlayerPageState extends State<_ShortPlayerPage> {
+class _ShortPlayerState extends State<_ShortPlayer> {
   late final YoutubePlayerController _controller;
-  late bool _paused;
+  bool _isPaused = false;
 
   @override
   void initState() {
     super.initState();
-    _paused = !widget.isActive;
     _controller = YoutubePlayerController(
       initialVideoId: widget.video.id,
-      flags: YoutubePlayerFlags(
-        autoPlay: widget.isActive,
-        loop: true,
-        hideControls: true,
-      ),
+      flags: YoutubePlayerFlags(autoPlay: true, loop: true, hideControls: true),
     );
-  }
-
-  @override
-  void didUpdateWidget(covariant _ShortPlayerPage oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.isActive != oldWidget.isActive) {
-      _paused = !widget.isActive;
-      if (widget.isActive) {
-        _controller.play();
-      } else {
-        _controller.pause();
-      }
-    }
   }
 
   @override
@@ -101,8 +78,9 @@ class _ShortPlayerPageState extends State<_ShortPlayerPage> {
   }
 
   void _togglePlay() {
-    setState(() => _paused = !_paused);
-    if (_paused) {
+    setState(() => _isPaused = !_isPaused);
+
+    if (_isPaused) {
       _controller.pause();
     } else {
       _controller.play();
@@ -111,53 +89,31 @@ class _ShortPlayerPageState extends State<_ShortPlayerPage> {
 
   @override
   Widget build(BuildContext context) {
-    final player = YoutubePlayer(controller: _controller);
-
+    // StackFit.expand membuat semua lapisan memenuhi seluruh halaman.
     return Stack(
+      fit: StackFit.expand,
       children: [
-        // IgnorePointer membuat sentuhan diteruskan ke PageView,
-        // sehingga halaman bisa digeser ke atas atau ke bawah.
-        Positioned.fill(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final minHeight = constraints.maxWidth * 16 / 9;
-              final h = minHeight > constraints.maxHeight
-                  ? minHeight
-                  : constraints.maxHeight;
-              final w = h * 9 / 16;
+        // Lapisan 1: video.
+        // IgnorePointer membuat sentuhan "tembus" ke PageView di belakangnya,
+        // supaya halaman tetap bisa digeser.
+        IgnorePointer(child: YoutubePlayer(controller: _controller)),
 
-              return ClipRect(
-                child: OverflowBox(
-                  maxWidth: w,
-                  maxHeight: h,
-                  child: SizedBox(
-                    width: w,
-                    height: h,
-                    child: IgnorePointer(child: player),
+        // Lapisan 2: lapisan transparan untuk menangkap tap play/pause.
+        GestureDetector(
+          behavior: HitTestBehavior.translucent,
+          onTap: _togglePlay,
+          child: _isPaused
+              ? const Center(
+                  child: Icon(
+                    Icons.play_arrow,
+                    color: Colors.white70,
+                    size: 80,
                   ),
-                ),
-              );
-            },
-          ),
+                )
+              : null,
         ),
 
-        // Lapisan transparan untuk tap play/pause.
-        Positioned.fill(
-          child: GestureDetector(
-            behavior: HitTestBehavior.translucent,
-            onTap: _togglePlay,
-            child: (_paused && widget.isActive)
-                ? const Center(
-                    child: Icon(
-                      Icons.play_arrow,
-                      color: Colors.white70,
-                      size: 80,
-                    ),
-                  )
-                : null,
-          ),
-        ),
-
+        // Lapisan 3: judul di bagian bawah.
         Positioned(
           left: 12,
           right: 12,
