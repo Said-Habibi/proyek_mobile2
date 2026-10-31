@@ -2,15 +2,10 @@ import '../models/video.dart';
 
 // Ganti ID di bawah dengan ID video YouTube yang asli.
 // ID ada di link video: youtube.com/watch?v=<ID>
-const _homeIds = ['dQw4w9WgXcQ', 'dQw4w9WgXcQ', 'dQw4w9WgXcQ'];
-const _musicIds = ['dQw4w9WgXcQ', 'dQw4w9WgXcQ'];
-const _subsIds = ['dQw4w9WgXcQ', 'dQw4w9WgXcQ'];
-const _shortsIds = [
-  'dQw4w9WgXcQ',
-  'dQw4w9WgXcQ',
-  'dQw4w9WgXcQ',
-  'dQw4w9WgXcQ',
-];
+const _homeIds = ['32nR048EMI0', '_c2e1NcI3Sc', 'tBTprs6p5fM'];
+const _musicIds = ['IfywPnUKsXg', 'T7BeOPQ7oyw', 'lGeUFHtlzDE'];
+const _subsIds = ['TKtcdHUrSmg', 'T7w74bbFo5E'];
+const _shortsIds = ['HBBkAIcuh2Y', 'Sqpbh-etDY4', 'De3HWvF7648', '_lOAg7vUTyw'];
 
 /// Mengubah daftar ID menjadi daftar Video.
 /// Judul dan channel dibuat otomatis, contoh: "Home #1".
