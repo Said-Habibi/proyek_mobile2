@@ -57,44 +57,56 @@ class _MainScreenState extends State<MainScreen> {
                   icon: const Icon(Icons.notifications_none),
                   onPressed: () {},
                 ),
+                IconButton(
+                  icon: const Icon(Icons.search),
+                  onPressed: () {},
+                ),
               ],
             ),
       body: _buildBody(),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        type: BottomNavigationBarType.fixed,
-        showSelectedLabels: false,
-        showUnselectedLabels: false,
-        backgroundColor: isShortsTab ? Colors.black : Colors.white,
-        selectedItemColor: isShortsTab ? Colors.white : Colors.black,
-        unselectedItemColor: isShortsTab ? Colors.white60 : Colors.black87,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home),
-            label: 'Home',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.play_circle_outline),
-            label: 'Shorts',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.add_circle_outline, size: 30),
-            label: 'Create',
-          ),
-          BottomNavigationBarItem(
-            icon: CircleAvatar(
-              radius: 13,
-              backgroundColor: Colors.brown,
-              child: Text(
-                'M',
-                style: TextStyle(color: Colors.white, fontSize: 12),
-              ),
+      bottomNavigationBar: Theme(
+        data: Theme.of(context).copyWith(
+          // Menghilangkan efek kilatan/kedipan menyebar yang melebar ke tab lain saat ditekan
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
+          splashFactory: NoSplash.splashFactory,
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _selectedIndex,
+          onTap: _onItemTapped,
+          type: BottomNavigationBarType.fixed,
+          showSelectedLabels: false,
+          showUnselectedLabels: false,
+          backgroundColor: isShortsTab ? Colors.black : Colors.white,
+          selectedItemColor: isShortsTab ? Colors.white : Colors.black,
+          unselectedItemColor: isShortsTab ? Colors.white60 : Colors.black87,
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_outlined),
+              activeIcon: Icon(Icons.home),
+              label: 'Home',
             ),
-            label: 'You',
-          ),
-        ],
+            BottomNavigationBarItem(
+              icon: Icon(Icons.play_circle_outline),
+              label: 'Shorts',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.add_circle_outline, size: 30),
+              label: 'Create',
+            ),
+            BottomNavigationBarItem(
+              icon: CircleAvatar(
+                radius: 13,
+                backgroundColor: Colors.brown,
+                child: Text(
+                  'M',
+                  style: TextStyle(color: Colors.white, fontSize: 12),
+                ),
+              ),
+              label: 'You',
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -5,11 +5,13 @@ import '../data/dummy_data.dart';
 import '../models/video.dart';
 import '../widgets/video_card.dart';
 
-void openPlayer(BuildContext context, Video video) {
-  Navigator.push(
-    context,
-    MaterialPageRoute(builder: (context) => PlayerScreen(video: video)),
-  );
+void openPlayer(BuildContext context, Video video, {bool replace = false}) {
+  final route = MaterialPageRoute(builder: (context) => PlayerScreen(video: video));
+  if (replace) {
+    Navigator.pushReplacement(context, route);
+  } else {
+    Navigator.push(context, route);
+  }
 }
 
 class PlayerScreen extends StatefulWidget {
@@ -22,32 +24,38 @@ class PlayerScreen extends StatefulWidget {
 }
 
 class _PlayerScreenState extends State<PlayerScreen> {
+  late Video _currentVideo;
   VideoPlayerController? _controller;
   bool _isLoading = true;
   String? _error;
   bool _showControls = true;
   bool _isDisposed = false;
+  final ScrollController _scrollController = ScrollController();
+  late final Future<List<Video>> _recommendationsFuture;
 
   @override
   void initState() {
     super.initState();
+    _currentVideo = widget.video;
+    _recommendationsFuture = getHomeVideos();
     _initializePlayer();
   }
 
   Future<void> _initializePlayer() async {
+    final targetVideoId = _currentVideo.id;
     setState(() {
       _isLoading = true;
       _error = null;
     });
 
     try {
-      final streamUrl = await youtubeService.getStreamUrl(widget.video.id);
-      if (_isDisposed || !mounted) return;
+      final streamUrl = await youtubeService.getStreamUrl(targetVideoId);
+      if (_isDisposed || !mounted || _currentVideo.id != targetVideoId) return;
 
       final controller = VideoPlayerController.networkUrl(Uri.parse(streamUrl));
       await controller.initialize();
 
-      if (_isDisposed || !mounted) {
+      if (_isDisposed || !mounted || _currentVideo.id != targetVideoId) {
         controller.dispose();
         return;
       }
@@ -55,22 +63,55 @@ class _PlayerScreenState extends State<PlayerScreen> {
       controller.play();
 
       controller.addListener(() {
-        if (mounted && !_isDisposed) setState(() {});
+        if (mounted && !_isDisposed && _currentVideo.id == targetVideoId) {
+          setState(() {});
+        }
       });
 
-      if (mounted && !_isDisposed) {
+      if (mounted && !_isDisposed && _currentVideo.id == targetVideoId) {
+        // Dispose controller lama jika ada sebelum memasang yang baru
+        _controller?.pause();
+        _controller?.dispose();
         setState(() {
           _controller = controller;
           _isLoading = false;
         });
+      } else {
+        controller.dispose();
       }
     } catch (e) {
-      if (_isDisposed || !mounted) return;
+      if (_isDisposed || !mounted || _currentVideo.id != targetVideoId) return;
       setState(() {
         _isLoading = false;
         _error = 'Gagal memuat video: $e';
       });
     }
+  }
+
+  void _changeVideo(Video newVideo) {
+    if (_currentVideo.id == newVideo.id) return;
+
+    // Hentikan dan dispose video sebelumnya agar tidak lanjut memutar di latar belakang
+    _controller?.pause();
+    _controller?.dispose();
+    _controller = null;
+
+    setState(() {
+      _currentVideo = newVideo;
+      _isLoading = true;
+      _error = null;
+      _showControls = true;
+    });
+
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
+
+    _initializePlayer();
   }
 
   @override
@@ -79,6 +120,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _controller?.pause();
     _controller?.dispose();
     _controller = null;
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -107,7 +149,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 1000),
-                  child: _VideoDetails(video: widget.video),
+                  child: _VideoDetails(
+                    video: _currentVideo,
+                    recommendationsFuture: _recommendationsFuture,
+                    scrollController: _scrollController,
+                    onSelectVideo: _changeVideo,
+                  ),
                 ),
               ),
             ),
@@ -264,17 +311,26 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
 /// Bagian di bawah pemutar: judul, deskripsi, channel, tombol aksi, dan video rekomendasi.
 class _VideoDetails extends StatelessWidget {
-  const _VideoDetails({required this.video});
+  const _VideoDetails({
+    required this.video,
+    required this.recommendationsFuture,
+    this.scrollController,
+    this.onSelectVideo,
+  });
 
   final Video video;
+  final Future<List<Video>> recommendationsFuture;
+  final ScrollController? scrollController;
+  final ValueChanged<Video>? onSelectVideo;
 
   @override
   Widget build(BuildContext context) {
     return FutureBuilder<List<Video>>(
-      future: getHomeVideos(),
+      future: recommendationsFuture,
       builder: (context, snapshot) {
         final otherVideos = snapshot.data ?? [];
         return ListView(
+          controller: scrollController,
           padding: const EdgeInsets.all(12),
           children: [
             Text(
@@ -305,7 +361,11 @@ class _VideoDetails extends StatelessWidget {
             const _CommentPreview(),
             const SizedBox(height: 12),
             for (final other in otherVideos)
-              if (other.id != video.id) VideoCard(video: other),
+              if (other.id != video.id)
+                VideoCard(
+                  video: other,
+                  onTap: onSelectVideo != null ? () => onSelectVideo!(other) : null,
+                ),
           ],
         );
       },

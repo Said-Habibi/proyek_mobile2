@@ -52,7 +52,7 @@ class _ShortsScreenState extends State<ShortsScreen> {
   }
 
   void _handleBack() {
-    // Utamakan pop jika layar ini dibuka via Navigator.push (misal dari Home Shelf).
+    // Utamakan pop jika layar ini dibuka via Navigator.push.
     if (Navigator.canPop(context)) {
       Navigator.pop(context);
     } else if (widget.onBack != null) {
@@ -186,7 +186,7 @@ class _HeaderIconButton extends StatelessWidget {
           child: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.5),
+              color: Colors.black.withValues(alpha: 0.5),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -499,7 +499,7 @@ class _ActionButton extends StatelessWidget {
               width: 44,
               height: 44,
               decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.4),
+                color: Colors.black.withValues(alpha: 0.4),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: Colors.white, size: 24),

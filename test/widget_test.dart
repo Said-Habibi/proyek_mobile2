@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:proyek_mobile2/main.dart';
 import 'package:proyek_mobile2/models/video.dart';
+import 'package:proyek_mobile2/widgets/video_card.dart';
 import 'package:proyek_mobile2/widgets/youtube_logo.dart';
 
 // 1x1 transparent PNG bytes for mocking NetworkImage in widget tests
@@ -75,7 +76,7 @@ class _FakeHttpHeaders implements HttpHeaders {
   @override
   void set(String name, Object value, {bool preserveHeaderCase = false}) {}
   @override
-  void add(String name, Object value, {bool preserveHeaderCase = false}) {}
+  void add(String name, Object value, {preserveHeaderCase = false}) {}
 }
 
 class _FakeHttpClientResponse extends Stream<List<int>> implements HttpClientResponse {
@@ -161,12 +162,40 @@ void main() {
       expect(find.byIcon(Icons.play_arrow), findsOneWidget);
     });
 
-    testWidgets('YoutubeUiApp mounts successfully', (WidgetTester tester) async {
+    testWidgets('YoutubeUiApp mounts successfully and shows search button', (WidgetTester tester) async {
       await tester.pumpWidget(const YoutubeUiApp());
 
       expect(find.byType(YoutubeUiApp), findsOneWidget);
       expect(find.text('YouTube'), findsOneWidget);
       expect(find.text('Home'), findsWidgets);
+      expect(find.byIcon(Icons.search), findsOneWidget);
+    });
+
+    testWidgets('VideoCard invokes custom onTap callback when tapped', (WidgetTester tester) async {
+      bool tapped = false;
+      const video = Video(
+        id: 'testId',
+        title: 'Video Title',
+        channel: 'Test Channel',
+        duration: '05:00',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: VideoCard(
+              video: video,
+              onTap: () {
+                tapped = true;
+              },
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Video Title'), findsOneWidget);
+      await tester.tap(find.byType(VideoCard));
+      expect(tapped, isTrue);
     });
   });
 }

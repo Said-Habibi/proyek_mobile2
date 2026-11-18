@@ -20,6 +20,9 @@ class YoutubeUiApp extends StatelessWidget {
         useMaterial3: true,
         colorSchemeSeed: Colors.red,
         scaffoldBackgroundColor: Colors.white,
+        splashFactory: NoSplash.splashFactory,
+        splashColor: Colors.transparent,
+        highlightColor: Colors.transparent,
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.white,
           foregroundColor: Colors.black,

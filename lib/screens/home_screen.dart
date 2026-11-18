@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../data/dummy_data.dart';
 import '../models/video.dart';
-import '../widgets/shorts_shelf.dart';
 import '../widgets/video_card.dart';
 
 const _channelNames = ['Tech Channel', 'Sport Daily', 'Music Hub'];
@@ -87,7 +86,7 @@ class _AsyncVideoList extends StatelessWidget {
   }
 }
 
-/// Tab Home: satu video, rak Shorts, lalu sisa video.
+/// Tab Home: daftar video beranda.
 class _HomeFeed extends StatelessWidget {
   const _HomeFeed();
 
@@ -101,10 +100,7 @@ class _HomeFeed extends StatelessWidget {
         }
         return ListView(
           children: [
-            VideoCard(video: videos[0]),
-            const ShortsShelf(),
-            for (var i = 1; i < videos.length; i++)
-              VideoCard(video: videos[i]),
+            for (final video in videos) VideoCard(video: video),
           ],
         );
       },

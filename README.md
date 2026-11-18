@@ -25,7 +25,6 @@ Aplikasi tiruan YouTube (YouTube Clone) berbasis Flutter yang mendukung multipla
 2. **Layout Fleksibel & Anti-Gepeng (Responsif terhadap Window Resize)**
    * Sebelumnya, tinggi thumbnail di-hardcode kaku ke `height: 200`, sehingga saat jendela diperlebar di desktop gambar menjadi persegi panjang pipih (terpotong atas-bawah).
    * **Solusi:** Menggunakan widget `AspectRatio(aspectRatio: 16 / 9)` pada [video_card.dart](file:///home/said/proyek_mobile2/lib/widgets/video_card.dart) dan [player_screen.dart](file:///home/said/proyek_mobile2/lib/screens/player_screen.dart), serta membungkus feed dengan `ConstrainedBox(maxWidth: 1000)` agar konten tetap proporsional dan terpusat di layar monitor lebar.
-   * [shorts_shelf.dart](file:///home/said/proyek_mobile2/lib/widgets/shorts_shelf.dart) menggunakan `LayoutBuilder` untuk menyesuaikan jumlah kolom secara dinamis (2 kolom di layar sempit, 3–4 kolom di layar lebar).
 3. **Pemberantasan Bug Suara/Video di Latar Belakang (*Background Playback Bug*)**
    * Menggunakan lifecycle `_isDisposed` flag dan pengecekan ketat pada setiap step asynchronous (`getStreamUrl` dan `controller.initialize()`). Jika pengguna keluar sebelum proses pemuatan selesai, controller langsung di-`dispose()` dan tidak pernah memutar suara.
    * Menambahkan pelacak `isActive` pada [shorts_screen.dart](file:///home/said/proyek_mobile2/lib/screens/shorts_screen.dart) sehingga saat menggeser antar Short, video sebelumnya otomatis di-`pause()`.
@@ -56,7 +55,6 @@ lib/
 └── widgets/
     ├── video_card.dart            # Kartu video responsif dengan AspectRatio 16:9
     ├── thumbnail.dart             # Penampil gambar thumbnail dengan error handling
-    ├── shorts_shelf.dart          # Rak Shorts horizontal beranda dengan LayoutBuilder
     └── youtube_logo.dart          # Widget logo YouTube untuk AppBar
 ```
 
@@ -72,18 +70,15 @@ lib/
 | | `ThemeData`, `AppBarTheme` | Kustomisasi warna dasar merah YouTube, scaffold background putih, dan AppBar transparan. |
 | **Responsivitas & Layout** | `AspectRatio` | **Kunci fleksibilitas ukuran:** Memaksa thumbnail dan video player selalu mempertahankan proporsi 16:9 berapapun ukuran jendela di-resize. |
 | | `ConstrainedBox`, `BoxConstraints` | Membatasi lebar maksimum halaman menjadi 1000px agar tampilan desktop tidak terlalu melebar. |
-| | `LayoutBuilder` | Mengukur dimensi kontainer secara real-time untuk mengatur jumlah kolom grid pada `ShortsShelf` (2 hingga 4 kolom). |
 | | `Column`, `Row`, `Expanded` | Menyusun elemen vertikal dan horizontal dengan pembagian ruang fleksibel. |
 | | `Container`, `Padding`, `SizedBox` | Pengaturan jarak (*margin/padding*), dekorasi latar, dan pembatas ukuran. |
 | | `Center`, `Divider` | Menengahkan konten di layar lebar dan garis pemisah antar menu. |
 | **Tumpukan & Posisi** | `Stack`, `Positioned` | Menumpuk kontrol video, label durasi di atas thumbnail, dan tombol aksi di atas pemutar Shorts. |
 | **Styling & Bentuk** | `BoxDecoration`, `DecoratedBox` | Memberikan latar belakang bulat transparan pada tombol aksi, border, dan border-radius. |
-| | `ClipRRect`, `ClipOval` | Memotong sudut kartu Shorts agar membulat dan membuat avatar channel berbentuk lingkaran sempurna. |
+| | `ClipRRect`, `ClipOval` | Memotong sudut kartu video agar membulat dan membuat avatar channel berbentuk lingkaran sempurna. |
 | | `CircleAvatar` | Menampilkan avatar channel YouTube (dengan teks inisial channel atau gambar). |
 | | `TextStyle`, `Shadow` | Tipografi tebal dan bayangan (*drop shadow*) agar teks di atas video tetap terbaca jelas. |
 | **List & Scroll** | `ListView`, `ListView.builder` | Daftar video vertikal dan horizontal (avatar langganan dan riwayat tontonan). |
-| | `GridView.count` | Grid kartu Shorts pada rak beranda. |
-| | `NeverScrollableScrollPhysics` | Mematikan scroll internal pada GridView agar dapat di-scroll mulus oleh ListView induknya. |
 | | `ListTile` | Komponen baris standar untuk menu akun, setelan, dan riwayat. |
 | **Halaman & Swipe** | `PageView.builder`, `PageController` | Menyediakan mekanisme geser vertikal (*swipe up/down*) untuk video Shorts. |
 | **Navigasi & Kontrol** | `Navigator.push`, `Navigator.pop` | Berpindah antar halaman (membuka player, membuka pencarian) dan menutup halaman. |

@@ -5,18 +5,23 @@ import '../screens/player_screen.dart';
 import 'thumbnail.dart';
 
 /// Kartu video (dipakai di Home, Subs, Music, dan rekomendasi di PlayerScreen).
-/// Kalau ditekan, membuka PlayerScreen.
+/// Kalau ditekan, membuka PlayerScreen atau memanggil [onTap] jika disediakan.
 class VideoCard extends StatelessWidget {
-  const VideoCard({super.key, required this.video});
+  const VideoCard({
+    super.key,
+    required this.video,
+    this.onTap,
+  });
 
   final Video video;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       // opaque: seluruh kartu bisa ditekan, termasuk bagian yang kosong.
       behavior: HitTestBehavior.opaque,
-      onTap: () => openPlayer(context, video),
+      onTap: onTap ?? () => openPlayer(context, video),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
