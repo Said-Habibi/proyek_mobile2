@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/dummy_data.dart';
+import '../models/video.dart';
 import '../widgets/shorts_shelf.dart';
 import '../widgets/video_card.dart';
 
@@ -13,7 +14,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 5, // harus sama dengan jumlah Tab dan jumlah isi TabBarView
+      length: 5,
       child: Column(
         children: const [
           TabBar(
@@ -49,20 +50,64 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
+/// Widget helper: menampilkan loading, error, atau data.
+class _AsyncVideoList extends StatelessWidget {
+  const _AsyncVideoList({
+    required this.future,
+    required this.builder,
+  });
+
+  final Future<List<Video>> future;
+  final Widget Function(List<Video> videos) builder;
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<List<Video>>(
+      future: future,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              'Failed to load videos\n${snapshot.error}',
+              textAlign: TextAlign.center,
+            ),
+          );
+        }
+        return Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1000),
+            child: builder(snapshot.data ?? []),
+          ),
+        );
+      },
+    );
+  }
+}
+
 /// Tab Home: satu video, rak Shorts, lalu sisa video.
 class _HomeFeed extends StatelessWidget {
   const _HomeFeed();
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      children: [
-        VideoCard(video: homeVideos[0]),
-        const ShortsShelf(),
-        // Sisa video setelah rak Shorts (mulai dari urutan ke-1).
-        for (var i = 1; i < homeVideos.length; i++)
-          VideoCard(video: homeVideos[i]),
-      ],
+    return _AsyncVideoList(
+      future: getHomeVideos(),
+      builder: (videos) {
+        if (videos.isEmpty) {
+          return const Center(child: Text('No videos available'));
+        }
+        return ListView(
+          children: [
+            VideoCard(video: videos[0]),
+            const ShortsShelf(),
+            for (var i = 1; i < videos.length; i++)
+              VideoCard(video: videos[i]),
+          ],
+        );
+      },
     );
   }
 }
@@ -73,20 +118,27 @@ class _SubsFeed extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      children: [
-        SizedBox(
-          height: 130,
-          child: ListView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            children: [
-              for (final name in _channelNames) _ChannelAvatar(name: name),
-            ],
-          ),
-        ),
-        for (final video in subsVideos) VideoCard(video: video),
-      ],
+    return _AsyncVideoList(
+      future: getSubsVideos(),
+      builder: (videos) {
+        return ListView(
+          children: [
+            SizedBox(
+              height: 130,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                children: [
+                  for (final name in _channelNames)
+                    _ChannelAvatar(name: name),
+                ],
+              ),
+            ),
+            for (final video in videos) VideoCard(video: video),
+          ],
+        );
+      },
     );
   }
 }
@@ -126,8 +178,13 @@ class _MusicFeed extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      children: [for (final video in musicVideos) VideoCard(video: video)],
+    return _AsyncVideoList(
+      future: getMusicVideos(),
+      builder: (videos) {
+        return ListView(
+          children: [for (final video in videos) VideoCard(video: video)],
+        );
+      },
     );
   }
 }

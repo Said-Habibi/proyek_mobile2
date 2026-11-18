@@ -28,7 +28,7 @@ class VideoCard extends StatelessWidget {
   }
 }
 
-/// Thumbnail dengan label durasi di pojok kanan bawah.
+/// Thumbnail dengan rasio aspek fleksibel 16:9 dan label durasi.
 class _ThumbnailWithDuration extends StatelessWidget {
   const _ThumbnailWithDuration({required this.video});
 
@@ -36,23 +36,27 @@ class _ThumbnailWithDuration extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Thumbnail(url: video.thumbnail, height: 200),
-        if (video.duration.isNotEmpty)
-          Positioned(
-            right: 8,
-            bottom: 8,
-            child: Container(
-              color: Colors.black87,
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-              child: Text(
-                video.duration,
-                style: const TextStyle(color: Colors.white, fontSize: 12),
+    return AspectRatio(
+      aspectRatio: 16 / 9,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Thumbnail(url: video.thumbnail),
+          if (video.duration.isNotEmpty)
+            Positioned(
+              right: 8,
+              bottom: 8,
+              child: Container(
+                color: Colors.black87,
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                child: Text(
+                  video.duration,
+                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                ),
               ),
             ),
-          ),
-      ],
+        ],
+      ),
     );
   }
 }

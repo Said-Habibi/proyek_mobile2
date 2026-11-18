@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../data/dummy_data.dart';
+import '../models/video.dart';
 import '../widgets/thumbnail.dart';
 import 'player_screen.dart';
 
@@ -93,7 +94,6 @@ class _ProfileButtons extends StatelessWidget {
   }
 }
 
-/// Judul bagian, contoh: "History" dan "Library".
 class _SectionTitle extends StatelessWidget {
   const _SectionTitle(this.title);
 
@@ -116,32 +116,43 @@ class _HistoryList extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       height: 150,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: homeVideos.length,
-        itemBuilder: (context, index) {
-          final video = homeVideos[index];
-
-          return GestureDetector(
-            onTap: () => openPlayer(context, video),
-            child: Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: SizedBox(
-                width: 160,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Thumbnail(url: video.thumbnail, width: 160, height: 90),
-                    const SizedBox(height: 6),
-                    Text(
-                      video.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+      child: FutureBuilder<List<Video>>(
+        future: getHomeVideos(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          }
+          final videos = snapshot.data ?? [];
+          if (videos.isEmpty) {
+            return const Center(child: Text('No history yet'));
+          }
+          return ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: videos.length,
+            itemBuilder: (context, index) {
+              final video = videos[index];
+              return GestureDetector(
+                onTap: () => openPlayer(context, video),
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: SizedBox(
+                    width: 160,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Thumbnail(url: video.thumbnail, width: 160, height: 90),
+                        const SizedBox(height: 6),
+                        Text(
+                          video.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           );
         },
       ),

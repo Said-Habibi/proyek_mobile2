@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:fvp/fvp.dart' as fvp;
 
 import 'screens/main_screen.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  fvp.registerWith();
   runApp(const YoutubeUiApp());
 }
 

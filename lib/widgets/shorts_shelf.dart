@@ -11,39 +11,60 @@ class ShortsShelf extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Padding(
-          padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Row(
-            children: [
-              Icon(Icons.play_arrow_rounded, color: Colors.red, size: 28),
-              SizedBox(width: 6),
-              Text(
-                'Shorts',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-            ],
-          ),
-        ),
-        GridView.count(
-          crossAxisCount: 2,
-          // shrinkWrap + NeverScrollableScrollPhysics: grid tidak scroll sendiri,
-          // tingginya mengikuti isinya, dan ikut di-scroll oleh ListView induknya.
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 8),
-          mainAxisSpacing: 8,
-          crossAxisSpacing: 8,
-          childAspectRatio: 0.65,
+    return FutureBuilder<List<Video>>(
+      future: getShortsVideos(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Padding(
+            padding: EdgeInsets.all(32),
+            child: Center(child: CircularProgressIndicator()),
+          );
+        }
+        final shorts = snapshot.data ?? [];
+        if (shorts.isEmpty) return const SizedBox.shrink();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            for (var i = 0; i < shortsVideos.length; i++)
-              _ShortCard(video: shortsVideos[i], index: i),
+            const Padding(
+              padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+              child: Row(
+                children: [
+                  Icon(Icons.play_arrow_rounded, color: Colors.red, size: 28),
+                  SizedBox(width: 6),
+                  Text(
+                    'Shorts',
+                    style:
+                        TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                // Responsif: 2 kolom di mobile/jendela kecil, 3-4 kolom di desktop/layar lebar.
+                final crossAxisCount = constraints.maxWidth > 900
+                    ? 4
+                    : (constraints.maxWidth > 600 ? 3 : 2);
+                return GridView.count(
+                  crossAxisCount: crossAxisCount,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                  mainAxisSpacing: 8,
+                  crossAxisSpacing: 8,
+                  childAspectRatio: 0.65,
+                  children: [
+                    for (var i = 0; i < shorts.length; i++)
+                      _ShortCard(video: shorts[i], index: i),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 16),
           ],
-        ),
-        const SizedBox(height: 16),
-      ],
+        );
+      },
     );
   }
 }
@@ -66,7 +87,6 @@ class _ShortCard extends StatelessWidget {
           ),
         );
       },
-      // ClipRRect memotong isi kotak mengikuti sudut yang membulat.
       child: ClipRRect(
         borderRadius: BorderRadius.circular(12),
         child: Stack(
@@ -80,14 +100,28 @@ class _ShortCard extends StatelessWidget {
               child: Container(
                 color: Colors.black54,
                 padding: const EdgeInsets.all(8),
-                child: Text(
-                  video.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      video.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (video.views.isNotEmpty)
+                      Text(
+                        video.views,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 11,
+                        ),
+                      ),
+                  ],
                 ),
               ),
             ),

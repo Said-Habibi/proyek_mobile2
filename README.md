@@ -1,91 +1,131 @@
 # proyek_mobile2
 
-Aplikasi tiruan YouTube (hanya UI) dengan data dummy. Pemutar video memakai `youtube_player_flutter`, dan thumbnail diambil dari `img.youtube.com`.
+Aplikasi tiruan YouTube (YouTube Clone) berbasis Flutter yang mendukung multiplatform (**Linux Desktop**, **Windows**, **macOS**, **Android**, dan **iOS**). Aplikasi ini mengambil metadata dan stream langsung dari YouTube menggunakan `youtube_explode_dart`, memutar video secara native menggunakan `video_player` yang diperkuat dengan backend `fvp`, serta memiliki antarmuka responsif yang fleksibel terhadap perubahan ukuran layar (*window resize*).
 
-## Package
+---
 
-| Package | Fungsi |
-|---|---|
-| `flutter/material.dart` | Widget Material Design |
-| `youtube_player_flutter` | Memutar video di halaman pemutar dan Shorts |
+## Dependensi & Fungsinya
 
-## Struktur
+| Package | Versi | Fungsi & Implementasi dalam Proyek |
+|---|---|---|
+| `video_player` | `^2.9.2` | Plugin resmi Flutter untuk memutar video. Digunakan di `PlayerScreen` dan `ShortsScreen` untuk memutar stream URL video YouTube, mengontrol status putar/jeda (*play/pause*), perulangan (*looping*), penunjuk durasi, dan progress bar. |
+| `fvp` | `^0.39.1` | Drop-in backend plugin berbasis FFmpeg & libmdk untuk `video_player`. Mengaktifkan pemutaran video native dengan akselerasi perangkat keras (*hardware acceleration*) di **Linux Desktop**, Windows, dan macOS, sehingga mengatasi error `UnimplementedError: init()` pada platform desktop. |
+| `youtube_explode_dart` | `^3.1.0` | Library Dart murni untuk mengekstrak data dari YouTube tanpa memerlukan API key / kuota Google Cloud. Digunakan di `YoutubeService` untuk mengambil metadata (judul, channel, durasi, view count, waktu upload, thumbnail) dan URL stream langsung (audio + video muxed MP4). |
+| `intl` | `^0.19.0` | Digunakan untuk formatting angka, tanggal, dan waktu secara terstandarisasi. |
+| `cupertino_icons` | `^1.0.8` | Menyediakan kumpulan ikon bergaya iOS/Cupertino untuk kebutuhan antarmuka. |
+
+---
+
+## Perbaruan Arsitektur & Perbaikan Masalah
+
+1. **Dukungan Penuh Linux Desktop (Bebas WebView & Bebas Unimplemented Error)**
+   * Sebelumnya, penggunaan `youtube_player_flutter` memicu exception `A platform implementation for flutter_inappwebview has not been set` karena `flutter_inappwebview` tidak mendukung Linux desktop.
+   * Penggunaan `video_player` tanpa backend juga memicu `UnimplementedError: init()`.
+   * **Solusi:** Diinisialisasi `fvp.registerWith();` pada [main.dart](file:///home/said/proyek_mobile2/lib/main.dart) sebelum `runApp()`. Pemutar video kini berjalan lancar di Linux menggunakan video pipeline native.
+2. **Layout Fleksibel & Anti-Gepeng (Responsif terhadap Window Resize)**
+   * Sebelumnya, tinggi thumbnail di-hardcode kaku ke `height: 200`, sehingga saat jendela diperlebar di desktop gambar menjadi persegi panjang pipih (terpotong atas-bawah).
+   * **Solusi:** Menggunakan widget `AspectRatio(aspectRatio: 16 / 9)` pada [video_card.dart](file:///home/said/proyek_mobile2/lib/widgets/video_card.dart) dan [player_screen.dart](file:///home/said/proyek_mobile2/lib/screens/player_screen.dart), serta membungkus feed dengan `ConstrainedBox(maxWidth: 1000)` agar konten tetap proporsional dan terpusat di layar monitor lebar.
+   * [shorts_shelf.dart](file:///home/said/proyek_mobile2/lib/widgets/shorts_shelf.dart) menggunakan `LayoutBuilder` untuk menyesuaikan jumlah kolom secara dinamis (2 kolom di layar sempit, 3–4 kolom di layar lebar).
+3. **Pemberantasan Bug Suara/Video di Latar Belakang (*Background Playback Bug*)**
+   * Menggunakan lifecycle `_isDisposed` flag dan pengecekan ketat pada setiap step asynchronous (`getStreamUrl` dan `controller.initialize()`). Jika pengguna keluar sebelum proses pemuatan selesai, controller langsung di-`dispose()` dan tidak pernah memutar suara.
+   * Menambahkan pelacak `isActive` pada [shorts_screen.dart](file:///home/said/proyek_mobile2/lib/screens/shorts_screen.dart) sehingga saat menggeser antar Short, video sebelumnya otomatis di-`pause()`.
+4. **Navigasi Lengkap & Elemen Hiasan pada Shorts**
+   * Menambahkan tombol **Kembali** (*Back Arrow*) dan tombol pintasan **Beranda** (*Home Shortcut*) pada bagian atas Shorts.
+   * Menambahkan deretan tombol aksi interaktif di sisi kanan (Like, Dislike, Comment, Share, Remix, Sound Icon) serta detail channel + tombol *Subscribe* di sisi kiri bawah.
+   * Bottom navigation bar secara otomatis beralih ke *Dark Theme* saat berada di tab Shorts.
+
+---
+
+## Struktur Direktori
 
 ```
 lib/
-├── main.dart
-├── models/video.dart
+├── main.dart                      # Inisialisasi fvp, tema aplikasi Material 3, dan root widget
+├── models/
+│   └── video.dart                 # Data model Video dengan copyWith, serialization, dan getter thumbnail
 ├── data/
-│   └── dummy_data.dart
+│   └── dummy_data.dart            # Data cache, ID video YouTube, fallback dummy, dan helper async
+├── services/
+│   └── youtube_service.dart       # Integrasi youtube_explode_dart (metadata, pencarian, stream URL)
 ├── screens/
-│   ├── main_screen.dart
-│   ├── home_screen.dart
-│   ├── player_screen.dart
-│   ├── shorts_screen.dart
-│   └── profile_screen.dart
+│   ├── main_screen.dart           # Scaffold utama, BottomNavigationBar dinamis, dan AppBar
+│   ├── home_screen.dart           # Tab bar Home (Home, Subs, Music, Live, More) responsif
+│   ├── player_screen.dart         # Layar pemutar video 16:9 dengan kontrol kustom dan rekomendasi
+│   ├── shorts_screen.dart         # Layar video vertikal PageView, tombol navigasi, dan tombol aksi
+│   └── profile_screen.dart        # Layar profil pengguna dan riwayat tontonan
 └── widgets/
-    ├── video_card.dart
-    ├── thumbnail.dart
-    ├── shorts_shelf.dart
-    └── youtube_logo.dart
-test/
-└── widget_test.dart
+    ├── video_card.dart            # Kartu video responsif dengan AspectRatio 16:9
+    ├── thumbnail.dart             # Penampil gambar thumbnail dengan error handling
+    ├── shorts_shelf.dart          # Rak Shorts horizontal beranda dengan LayoutBuilder
+    └── youtube_logo.dart          # Widget logo YouTube untuk AppBar
 ```
 
-## Fungsi per file
+---
 
-### Entry point, model, dan data
-| File | Class / fungsi | Fungsi |
+## Detail Widget yang Digunakan & Fungsinya
+
+| Kategori | Widget | Fungsi & Implementasi dalam Proyek |
 |---|---|---|
-| `main.dart` | `main()`, `YoutubeUiApp` | Menjalankan aplikasi dan mengatur tema (Material 3, warna dasar merah, AppBar putih). Halaman awalnya `MainScreen` |
-| `models/video.dart` | `Video` | Model data video (`id`, `title`, `channel`, `views`, `timeAgo`, `duration`). Getter `thumbnail` membentuk URL thumbnail dari ID video |
-| `data/dummy_data.dart` | `_buildVideos()` | Mengubah daftar ID menjadi daftar `Video` dengan judul dan channel otomatis. Menghasilkan `homeVideos`, `musicVideos`, `subsVideos`, `shortsVideos` |
+| **Struktur & Tema** | `MaterialApp` | Root aplikasi Flutter, konfigurasi tema global Material 3 dan routing. |
+| | `Scaffold` | Menyediakan kerangka dasar halaman (AppBar, Body, BottomNavigationBar). |
+| | `SafeArea` | Memastikan konten tidak tertutup notch layar hp atau titlebar sistem. |
+| | `ThemeData`, `AppBarTheme` | Kustomisasi warna dasar merah YouTube, scaffold background putih, dan AppBar transparan. |
+| **Responsivitas & Layout** | `AspectRatio` | **Kunci fleksibilitas ukuran:** Memaksa thumbnail dan video player selalu mempertahankan proporsi 16:9 berapapun ukuran jendela di-resize. |
+| | `ConstrainedBox`, `BoxConstraints` | Membatasi lebar maksimum halaman menjadi 1000px agar tampilan desktop tidak terlalu melebar. |
+| | `LayoutBuilder` | Mengukur dimensi kontainer secara real-time untuk mengatur jumlah kolom grid pada `ShortsShelf` (2 hingga 4 kolom). |
+| | `Column`, `Row`, `Expanded` | Menyusun elemen vertikal dan horizontal dengan pembagian ruang fleksibel. |
+| | `Container`, `Padding`, `SizedBox` | Pengaturan jarak (*margin/padding*), dekorasi latar, dan pembatas ukuran. |
+| | `Center`, `Divider` | Menengahkan konten di layar lebar dan garis pemisah antar menu. |
+| **Tumpukan & Posisi** | `Stack`, `Positioned` | Menumpuk kontrol video, label durasi di atas thumbnail, dan tombol aksi di atas pemutar Shorts. |
+| **Styling & Bentuk** | `BoxDecoration`, `DecoratedBox` | Memberikan latar belakang bulat transparan pada tombol aksi, border, dan border-radius. |
+| | `ClipRRect`, `ClipOval` | Memotong sudut kartu Shorts agar membulat dan membuat avatar channel berbentuk lingkaran sempurna. |
+| | `CircleAvatar` | Menampilkan avatar channel YouTube (dengan teks inisial channel atau gambar). |
+| | `TextStyle`, `Shadow` | Tipografi tebal dan bayangan (*drop shadow*) agar teks di atas video tetap terbaca jelas. |
+| **List & Scroll** | `ListView`, `ListView.builder` | Daftar video vertikal dan horizontal (avatar langganan dan riwayat tontonan). |
+| | `GridView.count` | Grid kartu Shorts pada rak beranda. |
+| | `NeverScrollableScrollPhysics` | Mematikan scroll internal pada GridView agar dapat di-scroll mulus oleh ListView induknya. |
+| | `ListTile` | Komponen baris standar untuk menu akun, setelan, dan riwayat. |
+| **Halaman & Swipe** | `PageView.builder`, `PageController` | Menyediakan mekanisme geser vertikal (*swipe up/down*) untuk video Shorts. |
+| **Navigasi & Kontrol** | `Navigator.push`, `Navigator.pop` | Berpindah antar halaman (membuka player, membuka pencarian) dan menutup halaman. |
+| | `PopScope` | Mencegah kebocoran navigasi dan memastikan pembersihan memori pemutar video saat tombol kembali ditekan. |
+| | `BottomNavigationBar` | Menu navigasi 4 tab bawah (Home, Shorts, Create, You) dengan perubahan warna dinamis. |
+| | `DefaultTabController`, `TabBar`, `TabBarView` | Manajemen 5 tab sub-kategori pada halaman Home (Home, Subs, Music, Live, More). |
+| **Interaksi & Tombol** | `GestureDetector` | Menangkap tap pada seluruh kartu video untuk membuka player dan tap pada Shorts untuk play/pause. |
+| | `InkWell`, `Material` | Menghasilkan efek sentuhan *ripple* pada tombol navigasi dan tombol aksi Shorts. |
+| | `IconButton`, `ElevatedButton`, `OutlinedButton` | Tombol interaktif (kembali, cari, notifikasi, putar/jeda, subscribe, buat channel). |
+| | `Tooltip` | Menampilkan teks keterangan mengambang saat ikon diarahkan oleh kursor mouse pada desktop. |
+| | `IgnorePointer` | Mencegah sentuhan pada overlay teks agar interaksi tap tetap tembus ke pemutar video di belakangnya. |
+| **Media & Pemutar Video** | `VideoPlayerController` | Mengelola pemutaran, buffering, durasi waktu, stream network URL, dan perulangan video. |
+| | `VideoPlayer` | Menampilkan frame video yang sedang diputar ke layar. |
+| | `VideoProgressIndicator` | Bilah progres video interaktif bawaan `video_player` (warna merah untuk durasi berjalan, abu-abu untuk buffering). |
+| | `Image.network`, `NetworkImage` | Memuat gambar thumbnail dan avatar dari URL internet. |
+| | `Icon` | Menampilkan ikon-ikon material YouTube (play, pause, like, dislike, comment, share, remix, back, home, notifikasi, dll). |
+| **Async & State** | `FutureBuilder` | Menangani siklus hidup data asinkron (kondisi loading spinner, kondisi error, dan kondisi data siap tampil). |
+| | `StatefulWidget`, `StatelessWidget` | Pemisahan widget statis dan widget dinamis yang memiliki state. |
+| | `setState`, `initState`, `didUpdateWidget`, `dispose` | Manajemen siklus hidup widget, kontrol pemutar video, dan pembersihan resource memori. |
 
-### Screens
-| File | Class / fungsi | Fungsi |
-|---|---|---|
-| `main_screen.dart` | `MainScreen` | Kerangka utama dengan `BottomNavigationBar` (Home, Shorts, Create, Profile) dan AppBar berisi logo, notifikasi, dan pencarian |
-| | `_onItemTapped()` | Berpindah tab. Tab Create hanya menampilkan `SnackBar` karena fitur upload belum dibuat |
-| `home_screen.dart` | `HomeScreen` | Lima tab (Home, Subs, Music, Live, More) dengan `DefaultTabController` |
-| | `_HomeFeed` | Daftar video beranda |
-| | `_SubsFeed`, `_ChannelAvatar` | Daftar channel langganan (avatar) dan videonya |
-| | `_MusicFeed` | Daftar video musik |
-| | `_LiveEmpty` | Tampilan kosong untuk tab Live |
-| | `_MoreMenu` | Menu tab More |
-| `player_screen.dart` | `openPlayer()` | Membuka `PlayerScreen` dengan `Navigator.push` |
-| | `PlayerScreen` | Memutar video dengan `YoutubePlayerBuilder` (agar fullscreen berfungsi). `initState()` membuat controller, `dispose()` membersihkannya |
-| | `_VideoDetails` | Judul, jumlah tayangan, dan waktu unggah |
-| | `_ChannelActionRow`, `_IconAction` | Baris channel dan tombol aksi (suka, bagikan, dan sebagainya) |
-| | `_CommentPreview` | Pratinjau komentar |
-| `shorts_screen.dart` | `ShortsScreen` | `PageView` vertikal untuk menggeser Shorts, dengan `PageController` |
-| | `_ShortPlayer` | Satu halaman Short: video autoplay, loop, tanpa kontrol |
-| | `_togglePlay()` | Tap untuk pause atau putar |
-| `profile_screen.dart` | `ProfileScreen` | Halaman profil |
-| | `_ProfileHeader`, `_ProfileButtons` | Avatar dan nama, serta tombol aksi |
-| | `_SectionTitle`, `_HistoryList` | Judul bagian dan riwayat tontonan |
+---
 
-### Widgets (komponen yang dipakai ulang)
-| File | Class | Fungsi |
-|---|---|---|
-| `video_card.dart` | `VideoCard` | Kartu video: thumbnail, durasi, judul, channel. Saat di-tap membuka pemutar |
-| | `_ThumbnailWithDuration`, `_VideoInfo` | Bagian gambar dengan label durasi, dan bagian teks info |
-| `thumbnail.dart` | `Thumbnail` | Gambar thumbnail dari `Image.network` dengan fallback container |
-| `shorts_shelf.dart` | `ShortsShelf`, `_ShortCard` | Rak Shorts horizontal di beranda |
-| `youtube_logo.dart` | `YoutubeLogo` | Logo YouTube untuk AppBar |
+## Cara Menjalankan Aplikasi
 
-## Widget dan fungsinya
+1. **Unduh Dependensi:**
+   ```bash
+   flutter pub get
+   ```
 
-| Kategori | Widget | Fungsi |
-|---|---|---|
-| Struktur | `MaterialApp`, `Scaffold`, `AppBar`, `SafeArea`, `ThemeData`, `AppBarTheme` | Kerangka aplikasi dan tema global |
-| Layout | `Column`, `Row`, `Container`, `Padding`, `SizedBox`, `Expanded`, `Center`, `Divider`, `AspectRatio` | Menyusun dan membagi ruang, menjaga rasio video 16:9 |
-| Stack | `Stack`, `Positioned` | Menumpuk label durasi di atas thumbnail |
-| Styling | `BoxDecoration`, `DecoratedBox`, `LinearGradient`, `ClipRRect`, `ClipOval`, `CircleAvatar`, `TextStyle` | Dekorasi, gradasi, potongan bentuk, avatar |
-| Gambar | `Image.network`, `NetworkImage`, `Icon` | Thumbnail dari internet dan ikon |
-| List dan grid | `ListView`, `ListView.builder`, `GridView.count`, `ListTile`, `NeverScrollableScrollPhysics` | Daftar video, grid, baris daftar, mematikan scroll bersarang |
-| Halaman | `PageView`, `PageController` | Geser vertikal untuk Shorts |
-| Navigasi | `Navigator.push`, `MaterialPageRoute`, `BottomNavigationBar`, `DefaultTabController`, `TabBar`, `TabBarView` | Pindah halaman, menu bawah, tab beranda |
-| Interaksi | `GestureDetector`, `InkWell`, `IconButton`, `ElevatedButton`, `OutlinedButton`, `SnackBar`, `IgnorePointer` | Tap, tombol, pesan singkat, mengabaikan sentuhan |
-| Media | `YoutubePlayerController`, `YoutubePlayerFlags`, `YoutubePlayer`, `YoutubePlayerBuilder`, `ProgressBarColors` | Mengatur dan menampilkan video, fullscreen, warna progres |
-| State | `StatelessWidget`, `StatefulWidget`, `setState()`, `initState()`, `dispose()` | Widget tetap dan dinamis, siklus hidup controller |
-| Data | `class Video`, `const` constructor, `required`, getter | Model data yang tidak bisa diubah |
+2. **Jalankan pada Linux Desktop:**
+   ```bash
+   flutter run -d linux
+   ```
+
+3. **Jalankan pada Platform Lain:**
+   ```bash
+   # Windows
+   flutter run -d windows
+
+   # Android
+   flutter run -d android
+
+   # Web (Opsional)
+   flutter run -d chrome
+   ```

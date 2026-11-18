@@ -4,7 +4,6 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:proyek_mobile2/data/dummy_data.dart';
 import 'package:proyek_mobile2/main.dart';
 import 'package:proyek_mobile2/models/video.dart';
 import 'package:proyek_mobile2/widgets/youtube_logo.dart';
@@ -136,16 +135,15 @@ void main() {
       );
     });
 
-    test('dummy data lists are populated with valid videos', () {
-      expect(homeVideos, isNotEmpty);
-      expect(musicVideos, isNotEmpty);
-      expect(subsVideos, isNotEmpty);
-      expect(shortsVideos, isNotEmpty);
+    test('thumbnail uses thumbnailUrl when provided', () {
+      const video = Video(
+        id: 'dQw4w9WgXcQ',
+        title: 'Test',
+        channel: 'Ch',
+        thumbnailUrl: 'https://example.com/thumb.jpg',
+      );
 
-      for (final video in homeVideos) {
-        expect(video.id, isNotEmpty);
-        expect(video.thumbnail, contains(video.id));
-      }
+      expect(video.thumbnail, equals('https://example.com/thumb.jpg'));
     });
   });
 

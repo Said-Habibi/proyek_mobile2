@@ -15,16 +15,6 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _selectedIndex = 0;
 
-  // Halaman untuk tiap menu di bottom navigation bar (urutannya sama dengan tombolnya).
-  // Index 2 (Create) tidak punya halaman: tombolnya hanya memunculkan SnackBar,
-  // jadi SizedBox kosong ini tidak pernah tampil.
-  final List<Widget> _pages = const [
-    HomeScreen(),
-    ShortsScreen(),
-    SizedBox(),
-    ProfileScreen(),
-  ];
-
   void _onItemTapped(int index) {
     if (index == 2) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -35,30 +25,50 @@ class _MainScreenState extends State<MainScreen> {
     setState(() => _selectedIndex = index);
   }
 
+  Widget _buildBody() {
+    switch (_selectedIndex) {
+      case 0:
+        return const HomeScreen();
+      case 1:
+        return ShortsScreen(
+          onBack: () => setState(() => _selectedIndex = 0),
+        );
+      case 2:
+        return const SizedBox();
+      case 3:
+        return const ProfileScreen();
+      default:
+        return const HomeScreen();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final isShortsTab = _selectedIndex == 1;
+
     return Scaffold(
-      appBar: AppBar(
-        title: const YoutubeLogo(),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_none),
-            onPressed: () {},
-          ),
-          IconButton(icon: const Icon(Icons.search), onPressed: () {}),
-        ],
-      ),
-      // Hanya halaman yang dipilih yang dibuat. Saat pindah tab, halaman lama dibuang,
-      // jadi video Shorts otomatis berhenti.
-      body: _pages[_selectedIndex],
+      // Sembunyikan AppBar saat berada di tab Shorts agar tampilan layar penuh
+      appBar: isShortsTab
+          ? null
+          : AppBar(
+              title: const YoutubeLogo(),
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.notifications_none),
+                  onPressed: () {},
+                ),
+              ],
+            ),
+      body: _buildBody(),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onItemTapped,
         type: BottomNavigationBarType.fixed,
         showSelectedLabels: false,
         showUnselectedLabels: false,
-        selectedItemColor: Colors.black,
-        unselectedItemColor: Colors.black,
+        backgroundColor: isShortsTab ? Colors.black : Colors.white,
+        selectedItemColor: isShortsTab ? Colors.white : Colors.black,
+        unselectedItemColor: isShortsTab ? Colors.white60 : Colors.black87,
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.home_outlined),

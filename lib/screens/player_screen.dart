@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+import 'package:video_player/video_player.dart';
 
 import '../data/dummy_data.dart';
 import '../models/video.dart';
@@ -22,52 +22,247 @@ class PlayerScreen extends StatefulWidget {
 }
 
 class _PlayerScreenState extends State<PlayerScreen> {
-  late final YoutubePlayerController _controller;
+  VideoPlayerController? _controller;
+  bool _isLoading = true;
+  String? _error;
+  bool _showControls = true;
+  bool _isDisposed = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = YoutubePlayerController(
-      initialVideoId: widget.video.id,
-      flags: YoutubePlayerFlags(autoPlay: true),
-    );
+    _initializePlayer();
+  }
+
+  Future<void> _initializePlayer() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final streamUrl = await youtubeService.getStreamUrl(widget.video.id);
+      if (_isDisposed || !mounted) return;
+
+      final controller = VideoPlayerController.networkUrl(Uri.parse(streamUrl));
+      await controller.initialize();
+
+      if (_isDisposed || !mounted) {
+        controller.dispose();
+        return;
+      }
+
+      controller.play();
+
+      controller.addListener(() {
+        if (mounted && !_isDisposed) setState(() {});
+      });
+
+      if (mounted && !_isDisposed) {
+        setState(() {
+          _controller = controller;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (_isDisposed || !mounted) return;
+      setState(() {
+        _isLoading = false;
+        _error = 'Gagal memuat video: $e';
+      });
+    }
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _isDisposed = true;
+    _controller?.pause();
+    _controller?.dispose();
+    _controller = null;
     super.dispose();
+  }
+
+  String _formatDuration(Duration duration) {
+    final minutes = duration.inMinutes.remainder(60);
+    final seconds = duration.inSeconds.remainder(60);
+    final hours = duration.inHours;
+    if (hours > 0) {
+      return '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
+    }
+    return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
   @override
   Widget build(BuildContext context) {
-    // YoutubePlayerBuilder dibutuhkan agar tombol fullscreen berfungsi.
-    return YoutubePlayerBuilder(
-      player: YoutubePlayer(
-        controller: _controller,
-        showVideoProgressIndicator: true,
-        progressColors: ProgressBarColors(
-          playedColor: Colors.red,
-          handleColor: Colors.redAccent,
+    return Scaffold(
+      body: SafeArea(
+        child: Column(
+          children: [
+            // Area Video Player yang fleksibel (selalu menjaga aspek rasio 16:9 saat resize)
+            AspectRatio(
+              aspectRatio: 16 / 9,
+              child: _buildPlayerArea(),
+            ),
+            Expanded(
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1000),
+                  child: _VideoDetails(video: widget.video),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
-      builder: (context, player) {
-        return Scaffold(
-          body: SafeArea(
-            child: Column(
-              children: [
-                player,
-                Expanded(child: _VideoDetails(video: widget.video)),
-              ],
-            ),
+    );
+  }
+
+  Widget _buildPlayerArea() {
+    if (_isLoading) {
+      return Container(
+        color: Colors.black,
+        child: const Center(
+          child: CircularProgressIndicator(color: Colors.red),
+        ),
+      );
+    }
+
+    if (_error != null) {
+      return Container(
+        color: Colors.black,
+        padding: const EdgeInsets.all(16),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white, size: 40),
+              const SizedBox(height: 8),
+              Text(
+                _error!,
+                style: const TextStyle(color: Colors.white70),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              ElevatedButton.icon(
+                onPressed: _initializePlayer,
+                icon: const Icon(Icons.refresh),
+                label: const Text('Coba Lagi'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+              ),
+            ],
           ),
-        );
+        ),
+      );
+    }
+
+    if (_controller == null || !_controller!.value.isInitialized) {
+      return Container(color: Colors.black);
+    }
+
+    final isPlaying = _controller!.value.isPlaying;
+    final position = _controller!.value.position;
+    final duration = _controller!.value.duration;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _showControls = !_showControls;
+        });
       },
+      child: Container(
+        color: Colors.black,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            Center(
+              child: AspectRatio(
+                aspectRatio: _controller!.value.aspectRatio > 0
+                    ? _controller!.value.aspectRatio
+                    : 16 / 9,
+                child: VideoPlayer(_controller!),
+              ),
+            ),
+            // Lapisan Kontrol Player
+            if (_showControls) ...[
+              Container(color: Colors.black38),
+              Positioned(
+                top: 8,
+                left: 8,
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ),
+              IconButton(
+                iconSize: 56,
+                icon: Icon(
+                  isPlaying
+                      ? Icons.pause_circle_filled
+                      : Icons.play_circle_filled,
+                  color: Colors.white,
+                ),
+                onPressed: () {
+                  setState(() {
+                    if (isPlaying) {
+                      _controller!.pause();
+                    } else {
+                      _controller!.play();
+                    }
+                  });
+                },
+              ),
+              Positioned(
+                left: 12,
+                right: 12,
+                bottom: 8,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          _formatDuration(position),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 12,
+                          ),
+                        ),
+                        Text(
+                          _formatDuration(duration),
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    VideoProgressIndicator(
+                      _controller!,
+                      allowScrubbing: true,
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      colors: const VideoProgressColors(
+                        playedColor: Colors.red,
+                        bufferedColor: Colors.white38,
+                        backgroundColor: Colors.white24,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }
 
-/// Bagian di bawah pemutar: judul, tombol aksi, channel, dan video lain.
+/// Bagian di bawah pemutar: judul, deskripsi, channel, tombol aksi, dan video rekomendasi.
 class _VideoDetails extends StatelessWidget {
   const _VideoDetails({required this.video});
 
@@ -75,60 +270,82 @@ class _VideoDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(12),
-      children: [
-        Text(
-          video.title,
-          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          '${video.views} • ${video.timeAgo}',
-          style: TextStyle(color: Colors.grey.shade700),
-        ),
-        const SizedBox(height: 12),
-        const _ChannelActionRow(),
-        const SizedBox(height: 12),
-        const _CommentPreview(),
-        const SizedBox(height: 12),
-        for (final other in homeVideos)
-          if (other != video) VideoCard(video: other),
-      ],
+    return FutureBuilder<List<Video>>(
+      future: getHomeVideos(),
+      builder: (context, snapshot) {
+        final otherVideos = snapshot.data ?? [];
+        return ListView(
+          padding: const EdgeInsets.all(12),
+          children: [
+            Text(
+              video.title,
+              style:
+                  const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              '${video.views} • ${video.timeAgo}',
+              style: TextStyle(color: Colors.grey.shade700),
+            ),
+            if (video.description.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text(
+                video.description,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
+            _ChannelActionRow(channelName: video.channel),
+            const SizedBox(height: 12),
+            const _CommentPreview(),
+            const SizedBox(height: 12),
+            for (final other in otherVideos)
+              if (other.id != video.id) VideoCard(video: other),
+          ],
+        );
+      },
     );
   }
 }
 
-// Ganti URL ini dengan link gambar kamu.
-// const String kChannelAvatarUrl =
-//     'https://i.pinimg.com/736x/1b/d6/f4/1bd6f46b92b38097840441fbc08ae824.jpg';
-// const String kSubscribeButtonUrl = 'https://example.com/subscribe.png';
-
 class _ChannelActionRow extends StatelessWidget {
   const _ChannelActionRow({
-    this.avatarUrl = 'https://i.pinimg.com/736x/1b/d6/f4/1bd6f46b92b38097840441fbc08ae824.jpg',
+    this.channelName = '',
   });
 
-  final String avatarUrl;
+  final String channelName;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
         ClipOval(
-          child: Image.network(
-            avatarUrl,
+          child: Container(
             width: 36,
             height: 36,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) => Container(
-              width: 36,
-              height: 36,
-              color: const Color(0xFFFFDAD6),
+            color: const Color(0xFFFFDAD6),
+            child: Center(
+              child: Text(
+                channelName.isNotEmpty ? channelName[0] : '?',
+                style: const TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
           ),
         ),
         const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            channelName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontWeight: FontWeight.w500),
+          ),
+        ),
         Container(
           height: 36,
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -147,17 +364,14 @@ class _ChannelActionRow extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 8),
-        const Expanded(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              _IconAction(icon: Icons.thumb_up_outlined),
-              _IconAction(icon: Icons.thumb_down_outlined),
-              _IconAction(icon: Icons.share_outlined),
-              _IconAction(icon: Icons.auto_awesome_outlined),
-              _IconAction(icon: Icons.more_vert),
-            ],
-          ),
+        const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _IconAction(icon: Icons.thumb_up_outlined),
+            _IconAction(icon: Icons.thumb_down_outlined),
+            _IconAction(icon: Icons.share_outlined),
+            _IconAction(icon: Icons.more_vert),
+          ],
         ),
       ],
     );
@@ -178,50 +392,11 @@ class _IconAction extends StatelessWidget {
   }
 }
 
-// class _SubscribeButton extends StatelessWidget {
-//   const _SubscribeButton({required this.url});
-
-//   final String url;
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Image.network(
-//       url,
-//       height: 36,
-//       fit: BoxFit.contain,
-//       loadingBuilder: (context, child, progress) =>
-//           progress == null ? child : _fallback(),
-//       errorBuilder: (context, error, stackTrace) => _fallback(),
-//     );
-//   }
-
-//   Widget _fallback() {
-//     return Container(
-//       height: 36,
-//       padding: const EdgeInsets.symmetric(horizontal: 16),
-//       alignment: Alignment.center,
-//       decoration: BoxDecoration(
-//         color: Colors.black,
-//         borderRadius: BorderRadius.circular(18),
-//       ),
-//       child: const Text(
-//         'Subscribe',
-//         style: TextStyle(
-//           color: Colors.white,
-//           fontSize: 14,
-//           fontWeight: FontWeight.w500,
-//         ),
-//       ),
-//     );
-//   }
-// }
-
 class _CommentPreview extends StatelessWidget {
   const _CommentPreview();
 
   @override
   Widget build(BuildContext context) {
-    // Tidak memakai InkWell/GestureDetector, jadi kartu ini tidak bisa dibuka.
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
@@ -239,7 +414,8 @@ class _CommentPreview extends StatelessWidget {
                 style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
               ),
               SizedBox(width: 6),
-              Text('3k', style: TextStyle(fontSize: 13, color: Colors.black54)),
+              Text('3k',
+                  style: TextStyle(fontSize: 13, color: Colors.black54)),
             ],
           ),
           const SizedBox(height: 10),
