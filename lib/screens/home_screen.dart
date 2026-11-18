@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 
 import '../data/dummy_data.dart';
 import '../widgets/shorts_shelf.dart';
-// import '../widgets/sponsored_card.dart';
 import '../widgets/video_card.dart';
 
 const _channelNames = ['Tech Channel', 'Sport Daily', 'Music Hub'];
@@ -50,7 +49,7 @@ class HomeScreen extends StatelessWidget {
   }
 }
 
-/// Tab Home: iklan, satu video, rak Shorts, lalu sisa video.
+/// Tab Home: satu video, rak Shorts, lalu sisa video.
 class _HomeFeed extends StatelessWidget {
   const _HomeFeed();
 
@@ -58,7 +57,6 @@ class _HomeFeed extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListView(
       children: [
-        // const SponsoredCard(),
         VideoCard(video: homeVideos[0]),
         const ShortsShelf(),
         // Sisa video setelah rak Shorts (mulai dari urutan ke-1).

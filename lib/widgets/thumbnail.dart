@@ -24,7 +24,13 @@ class Thumbnail extends StatelessWidget {
       width: width,
       height: height,
       color: Colors.grey.shade300,
-      child: Image.network(url, fit: BoxFit.cover),
+      child: Image.network(
+        url,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => Container(
+          color: Colors.grey.shade300,
+        ),
+      ),
     );
   }
 }

@@ -67,7 +67,11 @@ class _ShortPlayerState extends State<_ShortPlayer> {
     super.initState();
     _controller = YoutubePlayerController(
       initialVideoId: widget.video.id,
-      flags: YoutubePlayerFlags(autoPlay: true, loop: true, hideControls: true),
+      flags: const YoutubePlayerFlags(
+        autoPlay: true,
+        loop: true,
+        hideControls: true,
+      ),
     );
   }
 

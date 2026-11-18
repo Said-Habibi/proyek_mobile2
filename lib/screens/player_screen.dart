@@ -5,7 +5,6 @@ import '../data/dummy_data.dart';
 import '../models/video.dart';
 import '../widgets/video_card.dart';
 
-/// Membuka halaman pemutar untuk [video].
 void openPlayer(BuildContext context, Video video) {
   Navigator.push(
     context,

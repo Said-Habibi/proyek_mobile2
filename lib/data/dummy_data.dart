@@ -1,6 +1,6 @@
 import '../models/video.dart';
 
-// Ganti ID di bawah dengan ID video YouTube yang asli.
+// Ganti ID di bawah dengan ID video YouTube.
 // ID ada di link video: youtube.com/watch?v=<ID>
 const _homeIds = ['32nR048EMI0', '_c2e1NcI3Sc', 'tBTprs6p5fM'];
 const _musicIds = ['IfywPnUKsXg', 'T7BeOPQ7oyw', 'lGeUFHtlzDE'];
